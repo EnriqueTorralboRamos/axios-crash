@@ -1,3 +1,8 @@
+// Axios Globals
+
+axios.defaults.headers.common['X-Auth-Token']= 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c'
+
+
 // GET REQUEST
 function getTodos() {
   /* axios({
@@ -10,7 +15,9 @@ function getTodos() {
   .then(res => showOutput(res))
   .catch(err => console.error(err)); */
 
-  axios.get('https://jsonplaceholder.typicode.com/todos?_limit: 5')
+  axios.get('https://jsonplaceholder.typicode.com/todos?_limit=5',  {
+    timeout:5000
+  })
   .then(res => showOutput(res))
   .catch(err => console.error(err));
 }
@@ -38,7 +45,7 @@ function addTodo() {
 
 // PUT/PATCH REQUEST
 function updateTodo() {
-  axios.put('https://jsonplaceholder.typicode.com/todos/1', {
+  axios.patch('https://jsonplaceholder.typicode.com/todos/1', {
     title: 'Updated Todo',
     completed: true
   })
@@ -48,37 +55,117 @@ function updateTodo() {
 
 // DELETE REQUEST
 function removeTodo() {
-  console.log('DELETE Request');
+  axios.delete('https://jsonplaceholder.typicode.com/todos/1')
+  .then(res => showOutput(res))
+  .catch(err => console.error(err));
 }
 
 // SIMULTANEOUS DATA
 function getData() {
-  console.log('Simultaneous Request');
+  axios.all([
+    axios.get('https://jsonplaceholder.typicode.com/todos?_limit=5'),
+    axios.get('https://jsonplaceholder.typicode.com/posts?_limit=5')
+  ])
+    /* .then(res => {
+      console.log(res[0]);
+      console.log(res[1]);
+      showOutput(res[1]);
+    }) */
+    .then(axios.spread((todos,posts)=>showOutput(posts)))
+    .catch(err => console.error(err));
 }
 
 // CUSTOM HEADERS
 function customHeaders() {
-  console.log('Custom Headers');
+const config= {
+  headers: {
+    'Content-Type':'aplication/json',
+    Authorization:'sometoken'
+  }
+};
+
+  axios.post('https://jsonplaceholder.typicode.com/todos', {
+    title: 'New todo',
+    completed: false
+  }, config
+  )
+  .then(res => showOutput(res))
+  .catch(err => console.error(err));
 }
 
 // TRANSFORMING REQUESTS & RESPONSES
 function transformResponse() {
-  console.log('Transform Response');
+  const options = {
+    method: 'post',
+    url: 'https://jsonplaceholder.typicode.com/todos',
+    data: {
+      title: 'Hello world'
+    },
+    transformResponse: axios.defaults.transformResponse.concat(data=>{
+      data.title=data.title.toUpperCase();
+      return data;
+    })
+  };
+
+  axios(options).then(res => showOutput(res));
 }
 
 // ERROR HANDLING
 function errorHandling() {
-  console.log('Error Handling');
+  axios.get('https://jsonplaceholder.typicode.com/todoss')
+  .then(res => showOutput(res))
+  .catch(err => {
+    if(err.reponse){
+      // Server responded with a status over than 200 range
+      console.log(err.reponse.data);
+      console.log(err.reponse.status);
+      console.log(err.reponse.headers);
+      if(err.reponse.status=== 404){
+        alert('Error: Page not Found')
+      }
+    }else if (err.request){
+      //Request was made but no response
+      console.error(err.request);
+    }else{
+      console.error(err.message);
+    }
+  });
 }
 
 // CANCEL TOKEN
 function cancelToken() {
-  console.log('Cancel Token');
+  const source = axios.cancelToken.source();
+  axios.get('https://jsonplaceholder.typicode.com/todos', {
+    cancelToken: source.token
+  })
+  .then(res => showOutput(res))
+  .catch(thrown => {
+    if(axios.isCance(thrown)){
+      console.log('Request canceled', thrown.message);
+    }
+  });
+  if(true){
+    source.cancel('Request canceled!')
+  }
 }
 
 // INTERCEPTING REQUESTS & RESPONSES
+axios.interceptors.request.use(config=>{
+  console.log(`${config.method.toUpperCase()} request sent to ${config.url} at ${new Date().getTime()}`);
+  return config;
+},
+error=>{
+  return Promise.reject(error);
+
+});
 
 // AXIOS INSTANCES
+const axiosInstance= axios.create({
+  // Other constum Settings
+  baseUrl: 'https://jsonplaceholder.typicode.com'
+});
+
+axiosInstance.get('/comments').then(res=>showOutput(res));
 
 // Show output in browser
 function showOutput(res) {
